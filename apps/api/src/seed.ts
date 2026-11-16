@@ -1,44 +1,6 @@
-export type MailboxProvider = 'gmail' | 'outlook' | 'icloud' | 'custom'
-export type MailboxStatus = 'connected' | 'syncing' | 'error'
+import type { MailData, Mailbox, Message } from '@aurora/contracts'
 
-export type Mailbox = {
-  id: string
-  address: string
-  displayName: string
-  provider: MailboxProvider
-  status: MailboxStatus
-  unreadCount: number
-  totalMessages: number
-  lastSyncedAt: string
-}
-
-export type Message = {
-  id: string
-  mailboxId: string
-  subject: string
-  senderName: string
-  senderEmail: string
-  receivedAt: string
-  isRead: boolean
-  hasAttachments: boolean
-  snippet: string
-  labels: string[]
-}
-
-export const providerLabels: Record<MailboxProvider, string> = {
-  gmail: 'Gmail',
-  outlook: 'Outlook',
-  icloud: 'iCloud',
-  custom: 'Aurora Mail',
-}
-
-export const mailboxStatusLabels: Record<MailboxStatus, string> = {
-  connected: 'Connected',
-  syncing: 'Syncing',
-  error: 'Error',
-}
-
-export const mailboxes: Mailbox[] = [
+export const seedMailboxes: Mailbox[] = [
   {
     id: 'mb-aurora',
     address: 'anna@aurora.dev',
@@ -91,11 +53,7 @@ export const mailboxes: Mailbox[] = [
   },
 ]
 
-export const mailboxById = new Map(
-  mailboxes.map((mailbox) => [mailbox.id, mailbox]),
-)
-
-export const messages: Message[] = [
+export const seedMessages: Message[] = [
   {
     id: 'msg-001',
     mailboxId: 'mb-aurora',
@@ -385,3 +343,8 @@ export const messages: Message[] = [
     labels: ['Clients'],
   },
 ]
+
+export const seedMailData: MailData = {
+  mailboxes: seedMailboxes,
+  messages: seedMessages,
+}

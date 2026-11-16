@@ -1,6 +1,8 @@
 import { useTable } from '@tanstack/react-table'
 import { ChevronRight } from 'lucide-react'
 
+import type { Mailbox } from '@aurora/contracts'
+
 import {
   Table,
   TableBody,
@@ -12,7 +14,6 @@ import {
 import { cn } from '@/lib/utils'
 
 import { mailboxColumns } from './columns'
-import type { Mailbox } from './mail-data'
 import { mailTableFeatures } from './mail-table-features'
 
 type MailboxTableProps = {

@@ -6,9 +6,13 @@ import {
   ArrowRight,
   CheckCircle2,
   KeyRound,
+  Loader2,
   Plus,
   ShieldCheck,
 } from 'lucide-react'
+
+import type { ConnectMailboxInput } from '@aurora/contracts'
+import { connectMailboxRequestSchema } from '@aurora/contracts'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -29,15 +33,13 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import {
-  connectMailboxSchema,
-  type ConnectMailboxFormValues,
-} from '@/schemas/connect-mailbox-schema'
+
+import { connectMailbox } from './mail-api'
 
 type Step = 'credentials' | 'verify' | 'done'
 
 type ConnectMailboxDialogProps = {
-  onConnect: (email: string) => void
+  onConnected: () => Promise<void> | void
 }
 
 const stepTitles: Record<Step, string> = {
@@ -72,10 +74,14 @@ function StepIndicator({ step }: { step: Step }) {
   )
 }
 
-export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
+export function ConnectMailboxDialog({
+  onConnected,
+}: ConnectMailboxDialogProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>('credentials')
   const [connectedEmail, setConnectedEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const {
     register,
@@ -83,8 +89,8 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
     trigger,
     reset,
     formState: { errors },
-  } = useForm<ConnectMailboxFormValues>({
-    resolver: zodResolver(connectMailboxSchema),
+  } = useForm<ConnectMailboxInput>({
+    resolver: zodResolver(connectMailboxRequestSchema),
     defaultValues: {
       email: '',
       appPassword: '',
@@ -93,11 +99,16 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
   })
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isSubmitting) {
+      return
+    }
+
     setOpen(nextOpen)
 
     if (!nextOpen) {
       reset()
       setStep('credentials')
+      setServerError(null)
     }
   }
 
@@ -105,14 +116,29 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
     const isValid = await trigger(['email', 'appPassword'])
 
     if (isValid) {
+      setServerError(null)
       setStep('verify')
     }
   }
 
-  function onSubmit(values: ConnectMailboxFormValues) {
-    setConnectedEmail(values.email.trim().toLowerCase())
-    onConnect(values.email)
-    setStep('done')
+  async function onSubmit(values: ConnectMailboxInput) {
+    setIsSubmitting(true)
+    setServerError(null)
+
+    try {
+      const mailbox = await connectMailbox(values)
+      setConnectedEmail(mailbox.address)
+      await onConnected()
+      setStep('done')
+    } catch (error) {
+      setServerError(
+        error instanceof Error
+          ? error.message
+          : 'Could not connect the mailbox.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -124,7 +150,20 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        showCloseButton={!isSubmitting}
+        onEscapeKeyDown={(event) => {
+          if (isSubmitting) {
+            event.preventDefault()
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (isSubmitting) {
+            event.preventDefault()
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{stepTitles[step]}</DialogTitle>
           <DialogDescription>{stepDescriptions[step]}</DialogDescription>
@@ -181,8 +220,8 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
                 <span className="text-foreground">
                   Security → 2-Step Verification → App passwords
                 </span>
-                . It can be revoked at any time. This demo only checks the
-                format and sends nothing to Google.
+                . It can be revoked at any time. This demo sends the password
+                only to the local Aurora API and never contacts Google.
               </p>
             </div>
 
@@ -226,8 +265,8 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
                   {...register('twoFactorCode')}
                 />
                 <FieldDescription>
-                  Open Google Authenticator or another TOTP app. In the demo any
-                  6 digits are accepted.
+                  Open Google Authenticator or another TOTP app. The demo API
+                  accepts any 6-digit code.
                 </FieldDescription>
                 <FieldError errors={[errors.twoFactorCode]} />
               </Field>
@@ -236,26 +275,46 @@ export function ConnectMailboxDialog({ onConnect }: ConnectMailboxDialogProps) {
             <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <ShieldCheck className="mt-0.5 size-4 shrink-0" />
               <p>
-                In production the server verifies the code and stores only an
-                encrypted refresh token. The app password itself is never kept
-                in the browser.
+                The app password is sent to the Aurora API over HTTPS. In
+                production the server verifies the provider and stores only
+                encrypted credentials; the browser never keeps them.
               </p>
             </div>
+
+            {serverError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
+              >
+                {serverError}
+              </div>
+            )}
 
             <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
+                disabled={isSubmitting}
                 onClick={() => {
+                  setServerError(null)
                   setStep('credentials')
                 }}
               >
                 <ArrowLeft data-icon="inline-start" />
                 Back
               </Button>
-              <Button type="submit">
-                <ShieldCheck data-icon="inline-start" />
-                Verify and connect
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin" data-icon="inline-start" />
+                    Connecting…
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck data-icon="inline-start" />
+                    Verify and connect
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>

@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  useRouter,
+  type ErrorComponentProps,
+} from '@tanstack/react-router'
 import { Mail, MailOpen, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -13,13 +17,14 @@ import {
 } from '@/components/ui/card'
 import { ConnectMailboxDialog } from '@/features/mail/connect-mailbox-dialog'
 import { formatCount } from '@/features/mail/format'
-import { messages } from '@/features/mail/mail-data'
+import { fetchMailData } from '@/features/mail/mail-api'
 import { MailboxTable } from '@/features/mail/mailbox-table'
 import { MessagesTable } from '@/features/mail/messages-table'
-import { useMailStore } from '@/stores/mail-store'
 
 export const Route = createFileRoute('/mail')({
   component: MailPage,
+  loader: () => fetchMailData(),
+  errorComponent: MailError,
 })
 
 type StatCardProps = {
@@ -44,12 +49,36 @@ function StatCard({ label, value, hint }: StatCardProps) {
   )
 }
 
+function MailError({ error }: ErrorComponentProps) {
+  const router = useRouter()
+  const message =
+    error instanceof Error ? error.message : 'The mail API is unavailable.'
+
+  return (
+    <Card className="max-w-xl">
+      <CardHeader>
+        <CardTitle>Could not load mailboxes</CardTitle>
+        <CardDescription>{message}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button
+          onClick={() => {
+            void router.invalidate()
+          }}
+        >
+          Try again
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 function MailPage() {
+  const { mailboxes, messages } = Route.useLoaderData()
+  const router = useRouter()
   const [selectedMailboxId, setSelectedMailboxId] = useState<string | null>(
     null,
   )
-  const mailboxes = useMailStore((state) => state.mailboxes)
-  const connectMailbox = useMailStore((state) => state.connectMailbox)
 
   const selectedMailbox = selectedMailboxId
     ? mailboxes.find((mailbox) => mailbox.id === selectedMailboxId)
@@ -60,7 +89,7 @@ function MailPage() {
       selectedMailboxId
         ? messages.filter((message) => message.mailboxId === selectedMailboxId)
         : messages,
-    [selectedMailboxId],
+    [messages, selectedMailboxId],
   )
 
   const unreadCount = visibleMessages.filter((message) => !message.isRead).length
@@ -76,12 +105,12 @@ function MailPage() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">Mailboxes</h1>
-          <Badge variant="outline">Demo data</Badge>
+          <Badge variant="outline">API data</Badge>
         </div>
         <p className="max-w-2xl text-muted-foreground">
           Mailboxes linked to your account and the latest letters received in
-          them. The tables are powered by TanStack Table with sorting, search,
-          pagination and row selection.
+          them. Data comes from the Aurora API, and the tables are powered by
+          TanStack Table with sorting, search, pagination and row selection.
         </p>
       </div>
 
@@ -123,7 +152,9 @@ function MailPage() {
                 Click a mailbox to show only its letters in the table below.
               </CardDescription>
             </div>
-            <ConnectMailboxDialog onConnect={connectMailbox} />
+            <ConnectMailboxDialog
+              onConnected={() => router.invalidate()}
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -161,7 +192,7 @@ function MailPage() {
           )}
         </CardHeader>
         <CardContent>
-          <MessagesTable data={visibleMessages} />
+          <MessagesTable data={visibleMessages} mailboxes={mailboxes} />
         </CardContent>
       </Card>
     </div>

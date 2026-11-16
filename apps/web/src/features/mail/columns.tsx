@@ -1,18 +1,15 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import { Paperclip } from 'lucide-react'
 
+import type { Mailbox, Message } from '@aurora/contracts'
+
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 
 import { formatCount, formatDateTime } from './format'
 import { MailboxStatusBadge, SortableHeader } from './mail-cells'
-import {
-  mailboxById,
-  providerLabels,
-  type Mailbox,
-  type Message,
-} from './mail-data'
+import { providerLabels } from './mail-labels'
 import { mailTableFeatures } from './mail-table-features'
 
 const mailboxHelper = createColumnHelper<typeof mailTableFeatures, Mailbox>()
@@ -193,9 +190,10 @@ export const messageColumns = messageHelper.columns([
     header: 'Mailbox',
     enableSorting: false,
     enableGlobalFilter: false,
-    cell: ({ getValue }) => (
+    cell: ({ getValue, table }) => (
       <span className="text-muted-foreground">
-        {mailboxById.get(getValue())?.address ?? 'Unknown mailbox'}
+        {table.options.meta?.mailboxAddressById.get(getValue()) ??
+          'Unknown mailbox'}
       </span>
     ),
   }),

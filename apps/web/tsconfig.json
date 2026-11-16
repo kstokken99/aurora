@@ -2,7 +2,8 @@
   "files": [],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@aurora/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
   "references": [

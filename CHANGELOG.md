@@ -4,6 +4,46 @@
 добавляются сверху, внутри — группы «Добавлено», «Изменено», «Исправлено»,
 «Удалено».
 
+## 2026-11-16 — Монорепозиторий и backend API
+
+### Добавлено
+
+- npm-workspaces монорепозиторий: `apps/web` (прежний фронтенд), `apps/api`
+  (backend) и `packages/contracts` (общие Zod-схемы и типы API).
+- Backend на Hono: `GET /api/health`, `GET /api/mail`,
+  `POST /api/mailboxes` с Zod-валидацией и кодами `400`/`409`/`501`.
+- Пакет `@aurora/contracts`: схемы почт, писем, запроса подключения и ошибок
+  API — единый источник истины для web и api.
+- Demo-хранилище `apps/api/src/store.ts` с атомарной записью в
+  `apps/api/data/mail.json` (gitignored) и seed-данные в
+  `apps/api/src/seed.ts` вместо статического массива во фронтенде.
+- Переменные окружения `PORT` и `MAIL_DEMO_MODE` (API) и `API_URL` (Vite
+  proxy), порт API `3001`, прокси `/api/*` с `5173`/`4173`.
+- Зависимости: `hono` и `@hono/node-server` (API), `tsx` и `tsup`
+  (dev/сборка API), `concurrently` (параллельный `npm run dev`).
+- Правила монорепозитория, API и использования новых зависимостей в
+  `AGENTS.md`.
+
+### Изменено
+
+- `/mail` загружает почты и письма из API через `loader` TanStack Router;
+  ответы валидируются общими схемами, ошибки показываются через
+  `errorComponent`.
+- Модальное окно подключения почты отправляет email, 16-символьный app password
+  и 6-значный код в API, показывает состояние отправки и ошибки сервера, а после
+  успеха инвалидирует loader.
+- Корневые `dev`/`build`/`typecheck` работают по всем workspace'ам; сборка API
+  встраивает `@aurora/contracts` в бандл, чтобы `node dist/server.js` работал без
+  структуры монорепозитория.
+- `README.md` описывает новую структуру, команды, порты, env и endpoints.
+
+### Удалено
+
+- Демо-стор `useMailStore` и статический `mail-data.ts` во фронтенде: серверные
+  данные больше не дублируются в Zustand.
+- Локальная схема `connect-mailbox-schema.ts` во фронтенде: заменена общей
+  схемой из `@aurora/contracts`.
+
 ## 2026-11-16 — Подключение почты через Google
 
 ### Добавлено

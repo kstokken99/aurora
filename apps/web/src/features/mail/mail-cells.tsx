@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-import { mailboxStatusLabels, type MailboxStatus } from './mail-data'
+import type { MailboxStatus } from '@aurora/contracts'
+
+import { mailboxStatusLabels } from './mail-labels'
 
 function SortIndicator({ direction }: { direction: false | 'asc' | 'desc' }) {
   if (direction === 'asc') {

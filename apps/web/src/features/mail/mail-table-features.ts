@@ -13,6 +13,10 @@ import {
   tableFeatures,
 } from '@tanstack/react-table'
 
+export type MailTableMeta = {
+  mailboxAddressById: ReadonlyMap<string, string>
+}
+
 export const mailTableFeatures = tableFeatures({
   columnFilteringFeature,
   globalFilteringFeature,
@@ -27,4 +31,5 @@ export const mailTableFeatures = tableFeatures({
     alphanumeric: sortFn_alphanumeric,
     datetime: sortFn_datetime,
   },
+  tableMeta: {} as MailTableMeta,
 })

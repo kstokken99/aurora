@@ -1,5 +1,8 @@
+import { useMemo } from 'react'
 import { useTable } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
+
+import type { Mailbox, Message } from '@aurora/contracts'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,20 +24,26 @@ import {
 } from '@/components/ui/table'
 
 import { messageColumnCount, messageColumns } from './columns'
-import type { Message } from './mail-data'
 import { mailTableFeatures } from './mail-table-features'
 
 const PAGE_SIZES = [8, 12, 24]
 
 type MessagesTableProps = {
   data: readonly Message[]
+  mailboxes: readonly Mailbox[]
 }
 
-export function MessagesTable({ data }: MessagesTableProps) {
+export function MessagesTable({ data, mailboxes }: MessagesTableProps) {
+  const mailboxAddressById = useMemo(
+    () => new Map(mailboxes.map((mailbox) => [mailbox.id, mailbox.address])),
+    [mailboxes],
+  )
+
   const table = useTable({
     features: mailTableFeatures,
     columns: messageColumns,
     data,
+    meta: { mailboxAddressById },
     getRowId: (row) => row.id,
     globalFilterFn: 'includesString',
     initialState: {

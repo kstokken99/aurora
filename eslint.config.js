@@ -6,17 +6,17 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'src/routeTree.gen.ts']),
+  globalIgnores([
+    '**/dist',
+    '**/node_modules',
+    '**/routeTree.gen.ts',
+    'apps/api/data',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
     languageOptions: {
-      globals: globals.browser,
+      globals: { ...globals.browser, ...globals.node },
     },
     rules: {
       'no-restricted-imports': [
@@ -37,9 +37,16 @@ export default defineConfig([
     },
   },
   {
+    files: ['apps/web/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+  },
+  {
     // Route files and shadcn/ui components intentionally export non-components
     // (route definitions, variant helpers) next to components.
-    files: ['src/routes/**/*.{ts,tsx}', 'src/components/ui/**/*.{ts,tsx}'],
+    files: [
+      'apps/web/src/routes/**/*.{ts,tsx}',
+      'apps/web/src/components/ui/**/*.{ts,tsx}',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
