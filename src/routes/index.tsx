@@ -31,7 +31,7 @@ function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Zustand</CardTitle>
@@ -89,6 +89,26 @@ function OverviewPage() {
             <Button asChild className="w-fit">
               <Link to="/profile">
                 Open profile form
+                <ArrowRight data-icon="inline-end" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>TanStack Table</CardTitle>
+            <CardDescription>
+              Sortable, searchable and paginated tables for mail data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              The mail page lists linked mailboxes and letters received in them.
+            </p>
+            <Button asChild variant="outline" className="w-fit">
+              <Link to="/mail">
+                Open mailboxes
                 <ArrowRight data-icon="inline-end" />
               </Link>
             </Button>

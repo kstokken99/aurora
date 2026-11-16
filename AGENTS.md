@@ -1,8 +1,9 @@
 # Правила проекта Aurora
 
 Этот файл — контракт для всех, кто пишет код в проекте (людей и AI-агентов).
-Стек: **Vite + React 19 + TypeScript**, **TanStack Router**, **shadcn/ui**,
-**Tailwind CSS v4**, **Zod**, **React Hook Form**, **Zustand**.
+Стек: **Vite + React 19 + TypeScript**, **TanStack Router**,
+**TanStack Table**, **shadcn/ui**, **Tailwind CSS v4**, **Zod**,
+**React Hook Form**, **Zustand**.
 
 ## Команды
 
@@ -22,6 +23,33 @@ npx shadcn@latest add <component>
 npm run typecheck && npm run lint && npm run build
 ```
 
+## Новые зависимости
+
+Правило действует для **любой** новой npm-зависимости.
+
+1. Перед установкой проверьте, что задача не решается уже установленными
+   библиотеками. Выберите поддерживаемую версию (`npm view <pkg> version`).
+2. Устанавливайте через `npm` с Node.js из `.nvmrc`:
+   `npm install <pkg>` или `npm install -D <pkg>`.
+3. Сразу после установки добавьте в этот файл раздел с правилами использования:
+   назначение, разрешённые API и паттерны, ограничения, пример.
+4. Обновите `README.md`, если зависимость меняет стек или команды.
+5. Добавьте запись в `CHANGELOG.md`.
+6. Выполните `npm run typecheck && npm run lint && npm run build`.
+
+## История изменений
+
+История ведётся в [`CHANGELOG.md`](./CHANGELOG.md).
+
+- Каждое заметное изменение (новая функциональность, зависимость, поведение,
+  исправление) фиксируется отдельной записью.
+- Новая запись добавляется сверху в раздел с датой в формате `YYYY-MM-DD`.
+- Внутри записи используйте группы `Добавлено`, `Изменено`, `Исправлено`,
+  `Удалено`.
+- Запись должна объяснять, **что** изменилось и **зачем**, а не пересказывать
+  diff.
+- Запись о новой зависимости делается в той же правке, что и установка.
+
 ## Структура
 
 ```text
@@ -29,16 +57,20 @@ src/
   routes/                 # файловый роутинг TanStack Router
     __root.tsx            # корневой layout (header, Outlet, devtools)
     index.tsx             # "/"
+    mail.tsx              # "/mail" — почты и письма
     profile.tsx           # "/profile"
   components/
     ui/                   # shadcn/ui примитивы (генерируются CLI)
-  features/<feature>/     # фича: компоненты, хуки, модели
+  features/
+    mail/                 # данные, колонки и таблицы почт/писем
   schemas/                # Zod-схемы
   stores/                 # Zustand-сторы
   lib/utils.ts            # cn()
   main.tsx                # createRouter + RouterProvider
   routeTree.gen.ts        # ГЕНЕРИРУЕТСЯ, не редактировать
 ```
+
+В корне проекта также лежит `CHANGELOG.md` — история изменений.
 
 - Импорты только через alias `@/...`, например `@/components/ui/button`.
 - Экспорты — именованные. Default export допустим только там, где его требует
@@ -180,9 +212,71 @@ src/
 - `persist` — только для пользовательских настроек, с `partialize`, `version` и
   `migrate`, чтобы не ломать сохранённые данные.
 
+## TanStack Table
+
+Используется **v9**. В v9 нет `useReactTable` — таблица создаётся через
+`useTable`, а возможности подключаются явно через `tableFeatures`.
+
+- Фичи, колонки и данные держите стабильными: `features` и `columns` — на
+  уровне модуля, `data` — константа или `useMemo`. Новый массив на каждом
+  рендере ломает кэш row-моделей.
+- Регистрируйте только нужные фичи и row-model фабрики в одном объекте:
+
+  ```ts
+  export const mailTableFeatures = tableFeatures({
+    columnFilteringFeature,
+    globalFilteringFeature,
+    rowPaginationFeature,
+    rowSelectionFeature,
+    rowSortingFeature,
+    filteredRowModel: createFilteredRowModel(),
+    paginatedRowModel: createPaginatedRowModel(),
+    sortedRowModel: createSortedRowModel(),
+    filterFns: { includesString: filterFn_includesString },
+    sortFns: { alphanumeric: sortFn_alphanumeric, datetime: sortFn_datetime },
+  })
+  ```
+
+  Не используйте `stockFeatures`: это бандл всех возможностей.
+- Колонки описывайте через
+  `createColumnHelper<typeof features, Row>()`, а не через один generic:
+
+  ```ts
+  const helper = createColumnHelper<typeof mailTableFeatures, Message>()
+  export const columns = helper.columns([
+    helper.accessor('subject', { header: 'Subject' }),
+  ])
+  ```
+
+- Разметка — shadcn/ui `Table`, ячейки и заголовки — через
+  `table.FlexRender`, а не ручной `flexRender`.
+- Ячейки с интерактивом (кнопки, чекбоксы) выносите в отдельный
+  `*-cells.tsx`; файл с колонками не должен экспортировать компоненты.
+- Для строк всегда задавайте стабильный `getRowId: (row) => row.id`. Не
+  используйте индекс.
+- Выделение строк храните и читайте по ID:
+  `table.getSelectedRowIds()`, а не по индексам. После удаления данных чистите
+  `rowSelection` вручную.
+- Клиентская обработка: подключите нужные row-model и не ставьте
+  `manual*`. Серверная: `manualPagination`/`manualSorting`/`manualFiltering` +
+  `rowCount`/`pageCount`, а данные приходят уже обработанными.
+- Таблица не загружает данные. Данные для экрана приходят из `loader`
+  TanStack Router; фильтры, которые должны быть в URL, храните в search-params
+  маршрута.
+- Состояние таблицы (сортировка, пагинация, фильтр, выделение) — локальное,
+  если им не нужно делиться между экранами. Для контролируемых срезов
+  передавайте `state` + соответствующий `on*Change`.
+- Пагинация и фильтры должны иметь пустое состояние и сбрасывать `pageIndex`
+  при смене данных (по умолчанию `autoResetPageIndex` включён).
+- Заголовки сортируемых колонок — кнопки с `column.getToggleSortingHandler()`
+  и иконкой направления; не делайте сортировку по клику на `<th>` без
+  доступного контрола.
+
 ## Границы ответственности
 
 - **TanStack Router** — навигация, URL, загрузка данных для экрана.
+- **TanStack Table** — представление табличных данных, сортировка, фильтры,
+  пагинация и выделение на клиенте.
 - **Zod** — валидация и типы данных.
 - **React Hook Form** — состояние и отправка форм.
 - **Zustand** — общее клиентское состояние между экранами.

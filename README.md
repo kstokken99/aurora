@@ -7,6 +7,7 @@ SPA на Vite + React 19 + TypeScript с файловым роутингом и 
 
 - [Vite](https://vite.dev/) + React 19 + TypeScript
 - [TanStack Router](https://tanstack.com/router) — файловый роутинг
+- [TanStack Table](https://tanstack.com/table) — таблицы
 - [shadcn/ui](https://ui.shadcn.com/) + Tailwind CSS v4 — UI
 - [Zod](https://zod.dev/) — схемы и валидация
 - [React Hook Form](https://react-hook-form.com/) — формы
@@ -38,7 +39,7 @@ npm run dev
 src/
   routes/          # файловые маршруты TanStack Router
   components/ui/   # shadcn/ui примитивы
-  features/        # прикладные фичи
+  features/        # прикладные фичи (например, mail/ — таблицы почт и писем)
   schemas/         # Zod-схемы
   stores/          # Zustand-сторы
   lib/utils.ts     # cn()
@@ -51,4 +52,4 @@ src/
 ## Соглашения
 
 Правила разработки, структура папок и ограничения по каждой библиотеке описаны
-в [AGENTS.md](./AGENTS.md).
+в [AGENTS.md](./AGENTS.md). История изменений — в [CHANGELOG.md](./CHANGELOG.md).

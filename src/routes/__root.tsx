@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 const navItems = [
   { to: '/', label: 'Overview' },
+  { to: '/mail', label: 'Mail' },
   { to: '/profile', label: 'Profile' },
 ] as const
 
